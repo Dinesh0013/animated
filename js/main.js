@@ -25,9 +25,9 @@ function applyData(data) {
   if (story) story.setSchools(model.schools);
 }
 
-// Keeps the "largest audiences" list and the map markers in step.
+// Keeps the school list and the map markers in step.
 function wireTopList() {
-  const list = $("topList");
+  const list = $("schoolList");
   const schoolFor = (target) => {
     const button = target.closest("button");
     if (!button || !model) return null;

@@ -49,7 +49,7 @@ export function setNumber(el, target) {
 /* ---------- Story copy and key figures ---------- */
 
 export function renderStoryText(model) {
-  const { totalSchools, totalStudents, delhiSchools, delhiStudents, latestMonth, firstMonth, newest, topDelhi } = model;
+  const { totalSchools, totalStudents, delhi, latestMonth, firstMonth } = model;
   const schoolWord = (n) => (n === 1 ? "school" : "schools");
 
   setText("c1Title", `One video. ${formatNumber(totalSchools)} ${schoolWord(totalSchools)}. ${formatNumber(totalStudents)} students.`);
@@ -57,44 +57,25 @@ export function renderStoryText(model) {
   setNumber($("kStudents"), totalStudents);
   setText("kSince", firstMonth ? monthShort.format(firstMonth.date) : "–");
 
-  if (delhiSchools === 0) {
-    setText("c2Title", "Waiting for the first schools");
-    setText("c2Body", "No schools with a usable location have been added yet. They appear on the map as soon as they join.");
-  } else if (delhiSchools === totalSchools) {
-    setText("c2Title", "Delhi, school by school");
-    setText("c2Body", `All ${formatNumber(totalSchools)} participating ${schoolWord(totalSchools)} so far are in Delhi, together reaching ${formatNumber(delhiStudents)} students.`);
-  } else {
-    setText("c2Title", "Delhi, school by school");
-    setText("c2Body", `${formatNumber(delhiSchools)} of the ${formatNumber(totalSchools)} participating schools are in Delhi, reaching ${formatNumber(delhiStudents)} students.`);
-  }
-
-  setText("c3Newest", newest
-    ? `Newest school: ${newest.name}, added ${dayFormat.format(newest.date)}.`
-    : "");
-
-  const list = $("topList");
+  // Left-hand list of every school on the map, largest audience first.
+  const list = $("schoolList");
   list.textContent = "";
-  topDelhi.forEach((school) => {
-    const item = document.createElement("li");
-    const button = document.createElement("button");
-    button.type = "button";
-    const name = document.createElement("span");
-    name.textContent = school.name;
-    const count = document.createElement("strong");
-    count.textContent = formatNumber(school.students);
-    button.append(name, count);
-    button.dataset.key = `${school.lat},${school.lng},${school.name}`;
-    item.append(button);
-    list.append(item);
-  });
-  $("topListWrap").hidden = topDelhi.length === 0;
-
-  const month = latestMonth ? monthLong.format(latestMonth.date) : "";
-  const since = firstMonth ? monthLong.format(firstMonth.date) : "";
-  const added = latestMonth && latestMonth.added > 0
-    ? ` ${formatNumber(latestMonth.added)} students were added in ${month}.`
-    : "";
-  setText("c4Body", `${formatNumber(totalStudents)} students across ${formatNumber(totalSchools)} ${schoolWord(totalSchools)} since ${since}.${added}`);
+  [...delhi]
+    .sort((a, b) => b.students - a.students || a.name.localeCompare(b.name))
+    .forEach((school) => {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      const name = document.createElement("span");
+      name.textContent = school.name;
+      const count = document.createElement("strong");
+      count.textContent = school.reported ? formatNumber(school.students) : "–";
+      button.append(name, count);
+      button.dataset.key = `${school.lat},${school.lng},${school.name}`;
+      item.append(button);
+      list.append(item);
+    });
+  $("ch3").hidden = delhi.length === 0;
 
   // Video section facts
   setText("vSince", firstMonth ? monthLong.format(firstMonth.date) : "–");

@@ -11,6 +11,9 @@ const DELHI_URL = new URL("../data/delhi.geojson", import.meta.url).href;
 const DISTRICTS_URL = new URL("../data/india-districts.geojson", import.meta.url).href;
 
 // Scroll progress (0..1) at which each camera phase starts and ends.
+// Progress range over which the school list scrolls from its first to its last name.
+const LIST_SCROLL = { from: 0.45, to: 0.58 };
+
 const PHASE = { holdIndia: 0.07, arriveDelhi: 0.36, leaveDelhi: 0.62, backInIndia: 0.9 };
 
 const LATIN_NAME = ["coalesce", ["get", "name_en"], ["get", "name:latin"], ["get", "name"]];
@@ -198,9 +201,7 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     range: el.dataset.show.split(/\s+/).map(Number),
     shift: el.dataset.shift || "up"
   }));
-  const vfPlace = storyEl.querySelector("#vfPlace");
-  const vfCoords = storyEl.querySelector("#vfCoords");
-  const vfBar = storyEl.querySelector("#vfBar");
+  const listEl = storyEl.querySelector("#schoolList");
   const navDots = Array.from(storyEl.querySelectorAll(".chapter-nav button"));
   const cue = storyEl.querySelector(".scroll-cue");
 
@@ -331,14 +332,17 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
       lastKey = key;
       map.jumpTo({ center: cam.center, zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing });
       storyEl.style.setProperty("--z", cam.zoomT.toFixed(3));
-      if (vfCoords) {
-        vfCoords.textContent = `${cam.center[1].toFixed(2)}°N  ${cam.center[0].toFixed(2)}°E`;
-      }
-      if (vfPlace) vfPlace.textContent = cam.zoomT > 0.5 ? "Delhi" : "India";
-      if (vfBar) vfBar.style.transform = `scaleX(${cam.zoomT.toFixed(3)})`;
     }
     setRevealed(revealed ? cam.zoomT > 0.55 : cam.zoomT > 0.72);
     updateChapters(p);
+    scrollList(p);
+  }
+
+  // The school list scrolls itself with the story, so it never traps the mouse wheel.
+  function scrollList(p) {
+    if (!listEl) return;
+    const t = clamp01((p - LIST_SCROLL.from) / (LIST_SCROLL.to - LIST_SCROLL.from));
+    listEl.scrollTop = t * (listEl.scrollHeight - listEl.clientHeight);
   }
 
   /* Markers */

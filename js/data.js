@@ -221,8 +221,6 @@ export function buildModel(data) {
 
   const totalStudents = schools.reduce((sum, s) => sum + s.students, 0);
   const delhiStudents = delhi.reduce((sum, s) => sum + s.students, 0);
-  const byReach = [...delhi].filter((s) => s.reported).sort((a, b) => b.students - a.students);
-  const byDate = [...schools].filter((s) => s.date).sort((a, b) => b.date - a.date);
 
   return {
     schools,
@@ -232,8 +230,6 @@ export function buildModel(data) {
     totalStudents,
     delhiSchools: delhi.length,
     delhiStudents,
-    topDelhi: byReach.slice(0, 5),
-    newest: byDate[0] || null,
     latestMonth: series[series.length - 1] || null,
     firstMonth: series[0] || null
   };
