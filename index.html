@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Video Reach Tracker</title>
+  <meta name="description" content="Follow an air-pollution awareness video across India, school by school, then zoom into Delhi." />
+  <meta name="theme-color" content="#061317" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V" crossorigin="anonymous" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#video">Skip the map story</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-chip"><img src="assets/logo.jpg" alt="Queen's University Belfast logo" /></span>
+      <span class="brand-name">Video Reach Tracker</span>
+    </div>
+    <a class="button button-small" href="https://forms.gle/Vt81efP2fELoPS5H7" target="_blank" rel="noopener">Add your school</a>
+  </header>
+
+  <div id="notice" class="notice" role="alert" hidden></div>
+
+  <main>
+    <!-- Pinned, scroll-driven map story -->
+    <section id="story" class="story" aria-label="Map of India that zooms into Delhi as you scroll" data-reveal="0">
+      <div class="story-pin">
+        <div id="map" class="story-map" aria-label="Map of India with participating schools"></div>
+        <div class="story-vignette" aria-hidden="true"></div>
+
+        <div class="chapters">
+          <article class="chapter chapter-left" id="ch1" data-show="0 0 0.07 0.13">
+            <h1 id="c1Title">One video. Schools. Students.</h1>
+            <p>Follow the air-pollution awareness video as it travels, school by school. Scroll to travel with it.</p>
+            <dl class="key-figures">
+              <div><dt>Schools</dt><dd id="kSchools">0</dd></div>
+              <div><dt>Students</dt><dd id="kStudents">0</dd></div>
+              <div><dt>Tracking since</dt><dd id="kSince">&ndash;</dd></div>
+            </dl>
+          </article>
+
+          <article class="chapter chapter-left" id="ch2" data-show="0.12 0.19 0.31 0.37">
+            <h2 id="c2Title">Delhi, school by school</h2>
+            <p id="c2Body"></p>
+          </article>
+
+          <article class="chapter chapter-left chapter-wide" id="ch3" data-show="0.39 0.45 0.58 0.64">
+            <h2>Where it was watched</h2>
+            <p>Each marker is a school; larger markers mean more students watched. Hover, focus or tap a marker for details.</p>
+            <p class="chapter-note" id="c3Newest"></p>
+          </article>
+
+          <aside class="chapter chapter-right" id="ch3b" data-show="0.41 0.47 0.58 0.64" data-shift="down">
+            <div id="topListWrap">
+              <h3>Largest audiences in Delhi</h3>
+              <ol class="top-list" id="topList"></ol>
+            </div>
+          </aside>
+
+          <article class="chapter chapter-left" id="ch4" data-show="0.66 0.73 1 1">
+            <h2>Back to the bigger picture</h2>
+            <p id="c4Body"></p>
+            <a class="button" href="#video">Keep exploring</a>
+          </article>
+        </div>
+
+        <aside class="viewfinder" aria-hidden="true">
+          <div class="vf-place"><span id="vfPlace">India</span></div>
+          <div class="vf-coords" id="vfCoords">&nbsp;</div>
+          <div class="vf-track"><div class="vf-bar" id="vfBar"></div></div>
+          <div class="vf-legend"><i class="vf-dot vf-dot-small"></i><i class="vf-dot vf-dot-large"></i> Larger marker, more students</div>
+        </aside>
+
+        <nav class="chapter-nav" aria-label="Story chapters">
+          <button type="button" data-p="0" aria-label="India overview" aria-current="true"></button>
+          <button type="button" data-p="0.24" aria-label="Zooming into Delhi" aria-current="false"></button>
+          <button type="button" data-p="0.5" aria-label="Schools in Delhi" aria-current="false"></button>
+          <button type="button" data-p="0.85" aria-label="Back to the whole country" aria-current="false"></button>
+        </nav>
+
+        <div class="scroll-cue" aria-hidden="true"><span>Scroll</span><i></i></div>
+      </div>
+    </section>
+
+    <!-- Video -->
+    <section id="video" class="section section-dark">
+      <div class="motif motif-left" aria-hidden="true"></div>
+      <div class="split">
+        <div class="split-copy">
+          <h2>Watch the video</h2>
+          <p>The air-pollution awareness video shown to students in participating schools.</p>
+          <dl class="facts">
+            <div><dt>Tracking since</dt><dd id="vSince">&ndash;</dd></div>
+            <div><dt>Months of data</dt><dd id="vMonths">&ndash;</dd></div>
+            <div>
+              <dt id="vAddedLabel">Added this month</dt>
+              <dd><span id="vAdded">0</span></dd>
+              <dd class="fact-note" id="vAddedNote"></dd>
+            </div>
+          </dl>
+        </div>
+        <div class="split-media">
+          <iframe src="https://www.youtube.com/embed/JvEGXiQcYPI" title="Air pollution awareness video" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reach over time and schools -->
+    <section id="reach" class="section section-teal">
+      <div class="motif motif-right" aria-hidden="true"></div>
+      <div class="section-head">
+        <h2>Student reach</h2>
+        <p>Students who have watched the video, calculated from each school's submission date.</p>
+      </div>
+
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="tablist" role="tablist" aria-label="Student reach views">
+            <button type="button" role="tab" id="tabGrowth" aria-controls="panelGrowth" aria-selected="true">Monthly growth</button>
+            <button type="button" role="tab" id="tabSchools" aria-controls="panelSchools" aria-selected="false" tabindex="-1">Schools</button>
+          </div>
+        </div>
+
+        <div role="tabpanel" id="panelGrowth" aria-labelledby="tabGrowth">
+          <dl class="growth-stats">
+            <div class="growth-stat"><dt>Total students</dt><dd id="gsTotal">&ndash;</dd></div>
+            <div class="growth-stat"><dt id="gsLatestLabel">Added this month</dt><dd id="gsLatest">&ndash;</dd></div>
+            <div class="growth-stat"><dt>Strongest month</dt><dd id="gsPeak">&ndash;</dd></div>
+          </dl>
+
+          <div id="growthEmpty" class="empty" hidden>No dated submissions yet, so there is nothing to chart. The chart appears as soon as the first response arrives.</div>
+
+          <div id="growthContent">
+            <div class="chart-area">
+              <div class="chart-canvas"><canvas id="growthChart" role="img" aria-label="Running total of students who watched the video, by month"></canvas></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <caption>Monthly figures</caption>
+                <thead>
+                  <tr><th scope="col">Month</th><th scope="col">Schools added</th><th scope="col">Students added</th><th scope="col">Running total</th><th scope="col">Growth</th></tr>
+                </thead>
+                <tbody id="growthRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div role="tabpanel" id="panelSchools" aria-labelledby="tabSchools" hidden>
+          <p class="schools-meta" id="schoolsMeta"></p>
+          <div class="table-wrap">
+            <table>
+              <caption>Schools, newest first</caption>
+              <thead>
+                <tr><th scope="col">School</th><th scope="col">Date added</th><th scope="col">Students who watched</th></tr>
+              </thead>
+              <tbody id="schoolRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bubbles -->
+    <section id="bubbles" class="section section-paper">
+      <div class="section-head section-head-ink">
+        <h2>Reach by school</h2>
+        <p>Each bubble is a school. Its area shows how many students watched the video. Hover for details.</p>
+      </div>
+      <div class="sheet sheet-flat">
+        <div id="bubbleEmpty" class="empty" hidden>No schools yet. Bubbles appear as soon as the first response arrives.</div>
+        <div class="bubble-box" id="bubbleBox"><canvas id="bubbleChart" role="img" aria-label="Bubble chart of participating schools, sized by the number of students who watched the video"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Join -->
+    <section id="join" class="section section-dark join">
+      <div class="motif motif-right" aria-hidden="true"></div>
+      <div class="join-copy">
+        <h2>Add your school to the map</h2>
+        <p>Fill in the form (takes less than a minute) to mark your organisation and be part of a growing impact.</p>
+        <a class="button" href="https://forms.gle/Vt81efP2fELoPS5H7" target="_blank" rel="noopener">Open the form</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>For any queries or feedback: <a href="mailto:n.sangwan@qub.ac.uk">n.sangwan@qub.ac.uk</a></span>
+    <span>Map data &copy; OpenStreetMap contributors, OpenMapTiles via OpenFreeMap. India boundaries from udit-001/india-maps-data.</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js" integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" integrity="sha384-Z3REaz79l2IaAZqJsSABtTbhjgOUYyV3p90XNnAPCSHg3EMTz1fouunq9WZRtj3d" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
