@@ -1,8 +1,8 @@
 # Video Reach Tracker: map story
 
-A video-first page with a full-screen, scroll-driven map. Visitors watch the awareness video, then scroll to a pinned map of India that zooms straight into Delhi (no tilt, rotation or drift) and stays still while a school list scrolls beside it and the school markers appear. The camera is a pure function of scroll progress, so scrolling back up retraces it exactly.
+The page opens on a full-screen map of India with the awareness video on top of it. Scrolling slides the video away and zooms straight into Delhi (no tilt, rotation or drift); the map then stays still while a school list scrolls beside it and the school markers appear. The camera is a pure function of scroll progress, so scrolling back up retraces it exactly.
 
-Below the map: a monthly student-growth chart, a schools table and a bubble chart of reach by school. The "Add your school" button lives in the top bar.
+Below the map: a monthly student-growth chart, a schools table and a bubble chart of reach by school. The "Add your school" button lives in the top bar, with a small reminder popup near the map.
 
 ## How it works
 

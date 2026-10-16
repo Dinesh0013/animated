@@ -26,27 +26,6 @@
   <div id="notice" class="notice" role="alert" hidden></div>
 
   <main>
-    <!-- Watch the video -->
-    <section id="video" class="section section-dark section-video">
-      <div class="motif motif-left" aria-hidden="true"></div>
-      <div class="video-head">
-        <h2>Watch the Video</h2>
-        <p>The air-pollution awareness video, shown to students in Delhi schools.</p>
-      </div>
-      <div class="video-frame">
-        <iframe src="https://www.youtube.com/embed/JvEGXiQcYPI" title="Air pollution awareness video" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-      </div>
-      <dl class="facts facts-row">
-        <div><dt>Tracking since</dt><dd id="vSince">&ndash;</dd></div>
-        <div><dt>Months of data</dt><dd id="vMonths">&ndash;</dd></div>
-        <div>
-          <dt id="vAddedLabel">Added this month</dt>
-          <dd><span id="vAdded">0</span></dd>
-          <dd class="fact-note" id="vAddedNote"></dd>
-        </div>
-      </dl>
-    </section>
-
     <!-- Pinned, scroll-driven map story -->
     <section id="story" class="story" aria-label="Map of India that zooms into Delhi as you scroll" data-reveal="0">
       <div class="story-pin">
@@ -54,6 +33,14 @@
         <div class="story-vignette" aria-hidden="true"></div>
 
         <div class="chapters">
+          <article class="chapter chapter-video" id="ch1" aria-label="Watch the video">
+            <h1>Watch the Video</h1>
+            <p>The air-pollution awareness video, shown to students in Delhi schools.</p>
+            <div class="video-frame">
+              <iframe id="awarenessVideo" src="https://www.youtube.com/embed/JvEGXiQcYPI?enablejsapi=1" title="Air pollution awareness video" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            </div>
+          </article>
+
           <aside class="chapter chapter-list" id="ch3" aria-label="List of schools">
             <h2>List of Schools</h2>
             <p class="list-note">Marker size shows how many students watched.</p>

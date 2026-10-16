@@ -25,31 +25,10 @@ let latestSeries = [];
 const $ = (id) => document.getElementById(id);
 const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
 
-/* ---------- Counting animation ---------- */
-
-export function setNumber(el, target) {
-  if (!el) return;
-  const from = Number(el.dataset.value || 0);
-  el.dataset.value = target;
-  cancelAnimationFrame(el._frame);
-  if (reduceMotion.matches || from === target) {
-    el.textContent = formatNumber(target);
-    return;
-  }
-  const start = performance.now();
-  const step = (now) => {
-    const progress = Math.min((now - start) / 1000, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    el.textContent = formatNumber(Math.round(from + (target - from) * eased));
-    if (progress < 1) el._frame = requestAnimationFrame(step);
-  };
-  el._frame = requestAnimationFrame(step);
-}
-
-/* ---------- Story copy and key figures ---------- */
+/* ---------- School list ---------- */
 
 export function renderStoryText(model) {
-  const { delhi, latestMonth, firstMonth } = model;
+  const { delhi } = model;
 
   // Left-hand list of every school on the map, largest audience first.
   const list = $("schoolList");
@@ -70,13 +49,6 @@ export function renderStoryText(model) {
       list.append(item);
     });
   $("ch3").hidden = delhi.length === 0;
-
-  // Video section facts
-  setText("vSince", firstMonth ? monthLong.format(firstMonth.date) : "–");
-  setText("vMonths", firstMonth ? String(model.series.length) : "–");
-  setText("vAddedLabel", latestMonth ? `Added in ${monthShort.format(latestMonth.date)}` : "Added this month");
-  setNumber($("vAdded"), latestMonth ? latestMonth.added : 0);
-  setText("vAddedNote", latestMonth && latestMonth.growth !== null ? `${formatGrowth(latestMonth.growth)} on the previous total` : "");
 }
 
 /* ---------- Monthly growth ---------- */

@@ -1,6 +1,7 @@
 // Scroll-driven map story: a pinned full-screen MapLibre map whose camera is a pure
-// function of scroll progress. As the section arrives the map zooms straight into Delhi
-// (no tilt, rotation or drift) and then stays still while the school list scrolls.
+// function of scroll progress. The page opens on the whole of India with the video on top;
+// scrolling slides the video away and zooms straight into Delhi (no tilt, rotation or
+// drift), where the map then stays still while the school list scrolls.
 
 import { formatNumber, dayFormat } from "./data.js";
 
@@ -10,9 +11,14 @@ const STATES_URL = new URL("../data/india-states.geojson", import.meta.url).href
 const DELHI_URL = new URL("../data/delhi.geojson", import.meta.url).href;
 const DISTRICTS_URL = new URL("../data/india-districts.geojson", import.meta.url).href;
 
-// Progress (0..1) runs from the moment the section's top reaches the bottom of the screen
-// until its bottom reaches the bottom of the screen. The zoom finishes just as the map pins.
-const ZOOM_START = 0.02;
+// Scroll progress (0..1) runs from the top of the page to the end of the map section.
+const TIMING = {
+  zoom: [0.04, 0.34],               // India -> Delhi
+  video: [[-1, 0], [0.03, 0.12]],   // visible at the top, slides away as the zoom begins
+  list: [[0.3, 0.38], [0.95, 1]],
+  popup: [[0.46, 0.54], [0.96, 1]],
+  listScroll: [0.42, 0.9]
+};
 
 const LATIN_NAME = ["coalesce", ["get", "name_en"], ["get", "name:latin"], ["get", "name"]];
 
@@ -193,13 +199,14 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
   });
 
   const chapters = {
+    video: storyEl.querySelector("#ch1"),
     list: storyEl.querySelector("#ch3"),
     popup: storyEl.querySelector("#ch4")
   };
+  const videoFrame = storyEl.querySelector("#awarenessVideo");
   const listEl = storyEl.querySelector("#schoolList");
 
   let cameras = null;
-  let timing = { zoomEnd: 0.3 };
   let schools = [];
   let markers = [];
   let progress = 0;
@@ -208,20 +215,6 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
   let popup = null;
   let pinned = null;
   let tween = null;
-
-  /* Timing: the zoom ends exactly when the map pins to the screen. */
-
-  function measure() {
-    const pinAt = Math.min(0.6, window.innerHeight / storyEl.offsetHeight);
-    timing = {
-      zoomEnd: pinAt,
-      listIn: [pinAt - 0.03, pinAt + 0.03],
-      listOut: [0.95, 1],
-      popupIn: [pinAt + 0.16, pinAt + 0.22],
-      popupOut: [0.96, 1],
-      listScroll: [pinAt + 0.06, 0.92]
-    };
-  }
 
   /* Cameras */
 
@@ -236,10 +229,15 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     const { clientWidth: w, clientHeight: h } = mapEl;
     const mobile = w < 760;
 
+    // Frame each view in the space the panels leave free, measured from the real layout.
+    const { video, list, popup: cta } = chapters;
+    const rightEdge = (el) => (el && el.offsetWidth ? el.offsetLeft + el.offsetWidth : 0);
+    const spaceBelow = (el) => (el && el.offsetHeight ? h - el.offsetTop : 0);
+
     const india = toCamera({
       padding: mobile
-        ? { top: 70, bottom: Math.round(h * 0.4), left: 10, right: 10 }
-        : { top: 76, bottom: 34, left: Math.min(Math.round(w * 0.3), 460), right: 24 }
+        ? { top: 70, bottom: spaceBelow(video) + 12, left: 10, right: 10 }
+        : { top: 76, bottom: 34, left: rightEdge(video) + 24, right: 24 }
     }, INDIA_BOUNDS);
 
     // Frame the real school locations; fall back to Delhi's extent if there are none.
@@ -252,8 +250,8 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
 
     const delhi = toCamera({
       padding: mobile
-        ? { top: 90, bottom: Math.round(h * 0.5), left: 28, right: 28 }
-        : { top: 100, bottom: 90, left: Math.min(Math.round(w * 0.4), 580), right: 110 },
+        ? { top: 90, bottom: spaceBelow(list) + 12, left: 28, right: 28 }
+        : { top: 100, bottom: spaceBelow(cta) + 16, left: rightEdge(list) + 40, right: 90 },
       maxZoom: 11.4
     }, bounds);
 
@@ -273,7 +271,7 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
   // The camera is a pure function of progress, so scrolling either way retraces the same path.
   function cameraAt(p) {
     const { india, delhi, a, focus } = cameras;
-    const t = clamp01((p - ZOOM_START) / (timing.zoomEnd - ZOOM_START));
+    const t = clamp01((p - TIMING.zoom[0]) / (TIMING.zoom[1] - TIMING.zoom[0]));
 
     if (reduceMotion.matches) {
       return t < 0.5 ? { ...india, zoomT: 0 } : { ...delhi, zoomT: 1 };
@@ -302,24 +300,38 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     return 0;
   }
 
-  function showPanel(el, v) {
+  function showPanel(el, v, shift) {
     if (!el) return;
+    const [dx, dy] = shift;
     el.style.opacity = v.toFixed(3);
-    el.style.transform = `translate3d(0, ${((1 - v) * 24).toFixed(1)}px, 0)`;
+    el.style.transform = `translate3d(${((1 - v) * dx).toFixed(1)}px, ${((1 - v) * dy).toFixed(1)}px, 0)`;
     el.style.visibility = v < 0.02 ? "hidden" : "visible";
     el.style.pointerEvents = v > 0.6 ? "auto" : "none";
     el.setAttribute("aria-hidden", String(v < 0.5));
   }
 
+  // A hidden video would keep playing out of sight, so pause it as the panel slides away.
+  let videoShown = true;
+  function syncVideo(v) {
+    const shown = v >= 0.02;
+    if (videoShown && !shown && videoFrame && videoFrame.contentWindow) {
+      videoFrame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "https://www.youtube.com");
+    }
+    videoShown = shown;
+  }
+
   function updatePanels(p) {
-    showPanel(chapters.list, visibility(p, timing.listIn, timing.listOut));
-    showPanel(chapters.popup, visibility(p, timing.popupIn, timing.popupOut));
+    const video = visibility(p, ...TIMING.video);
+    showPanel(chapters.video, video, [-60, -16]);
+    syncVideo(video);
+    showPanel(chapters.list, visibility(p, ...TIMING.list), [0, 24]);
+    showPanel(chapters.popup, visibility(p, ...TIMING.popup), [0, 24]);
   }
 
   // The school list scrolls itself with the story, so it never traps the mouse wheel.
   function scrollList(p) {
     if (!listEl) return;
-    const [from, to] = timing.listScroll;
+    const [from, to] = TIMING.listScroll;
     const t = clamp01((p - from) / (to - from));
     listEl.scrollTop = t * (listEl.scrollHeight - listEl.clientHeight);
   }
@@ -460,10 +472,9 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
       ease: "none",
       scrollTrigger: {
         trigger: storyEl,
-        start: "top bottom",
+        start: "top top",
         end: "bottom bottom",
-        scrub: reduceMotion.matches ? true : 0.7,
-        onRefresh: () => { measure(); apply(progress, true); }
+        scrub: reduceMotion.matches ? true : 0.7
       },
       onUpdate: () => apply(proxy.p)
     });
@@ -471,7 +482,6 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
 
   const resizeObserver = new ResizeObserver(() => {
     map.resize();
-    measure();
     computeCameras();
     apply(progress, true);
     ScrollTrigger.refresh();
@@ -481,7 +491,6 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
   const motionListener = () => { computeCameras(); bindScroll(); apply(progress, true); };
   reduceMotion.addEventListener("change", motionListener);
 
-  measure();
   computeCameras();
   bindScroll();
   apply(0, true);
