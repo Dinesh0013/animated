@@ -27,7 +27,7 @@
 
   --topbar: 60px;
   --gutter: clamp(16px, 4vw, 64px);
-  --story-length: 640vh;
+  --story-length: 300vh;
 }
 
 * { box-sizing: border-box; }
@@ -155,44 +155,20 @@ img { display: block; max-width: 100%; }
   will-change: opacity, transform;
 }
 
-/* Hidden until the scroll controller takes over; the opening chapter shows immediately. */
+/* Hidden until the scroll controller reveals them. */
 .chapter { opacity: 0; visibility: hidden; }
-#ch1 { opacity: 1; visibility: visible; }
 
-.chapter-left { left: var(--gutter); bottom: clamp(28px, 9vh, 96px); }
-#ch1 { width: min(580px, 42vw); }
 
-.chapter h1,
 .chapter h2 {
   font-family: var(--display);
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.06;
 }
-.chapter h1 { font-size: clamp(2.1rem, 3.8vw, 3.6rem); }
 .chapter h2 { font-size: clamp(1.8rem, 2.8vw, 2.7rem); }
 .chapter p { margin-top: 14px; color: var(--ink-soft); max-width: 46ch; }
 .chapter .button { margin-top: 20px; background: var(--green-deep); color: #fff; }
 .chapter .button:hover { background: #17604a; }
-
-.key-figures {
-  display: flex;
-  gap: 0;
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid var(--paper-line);
-}
-.key-figures > div { flex: 1; padding-right: 16px; min-width: 0; }
-.key-figures > div + div { padding-left: 16px; border-left: 1px solid var(--paper-line); }
-.key-figures dt { font-size: 0.85rem; color: var(--muted); }
-.key-figures dd {
-  font-family: var(--display);
-  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
-  font-weight: 500;
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums lining-nums;
-  overflow-wrap: anywhere;
-}
 
 /* Left-hand list of schools in the Delhi chapter */
 .chapter-list {
@@ -254,60 +230,6 @@ img { display: block; max-width: 100%; }
 .popup-copy strong { display: block; font-family: var(--display); font-size: 1.2rem; font-weight: 500; line-height: 1.2; }
 .popup-copy span { font-size: 0.88rem; color: var(--ink-soft); }
 .chapter-popup .button { margin-top: 0; white-space: nowrap; }
-
-/* Chapter dots */
-.chapter-nav {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 4px;
-  background: var(--midnight-900);
-  border: 1px solid var(--line-dark);
-  border-radius: 20px;
-}
-.chapter-nav button {
-  position: relative;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-.chapter-nav button::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  border: 1.5px solid var(--on-dark-soft);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-.chapter-nav button[aria-current="true"]::after { background: var(--green); border-color: var(--green); }
-.chapter-nav button:hover::after { border-color: var(--on-dark); }
-
-.scroll-cue {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px 6px;
-  background: var(--midnight-900);
-  border: 1px solid var(--line-dark);
-  border-radius: 4px;
-  font-size: 0.82rem;
-  color: var(--on-dark-soft);
-  pointer-events: none;
-}
-.scroll-cue i { display: block; width: 1px; height: 18px; background: var(--green); animation: cue 1.8s ease-in-out infinite; transform-origin: top; }
-@keyframes cue { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 
 /* ---------- School markers ---------- */
 
@@ -378,8 +300,6 @@ img { display: block; max-width: 100%; }
 .story.is-static .story-pin { position: relative; height: auto; padding: calc(var(--topbar) + 48px) var(--gutter) 64px; display: grid; gap: 16px; background: var(--teal-800); }
 .story.is-static .story-map,
 .story.is-static .story-vignette,
-.story.is-static .chapter-nav,
-.story.is-static .scroll-cue { display: none; }
 .story.is-static .chapters { position: static; display: grid; gap: 16px; }
 .story.is-static .chapter-list { height: auto; }
 .story.is-static .school-list { overflow: visible; }
@@ -416,18 +336,22 @@ img { display: block; max-width: 100%; }
 .motif-left { left: -8vw; bottom: -14%; width: min(72vw, 820px); }
 .motif-right { right: -10vw; top: -8%; width: min(68vw, 760px); }
 
-/* Video */
-.split {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.5fr);
-  gap: clamp(28px, 5vw, 88px);
-  align-items: center;
+/* Watch the video */
+.section-video { padding-top: calc(var(--topbar) + clamp(40px, 7vw, 96px)); }
+.video-head { max-width: 62ch; margin-bottom: clamp(24px, 3vw, 40px); }
+.video-head p { margin-top: 12px; color: var(--on-dark-soft); font-size: 1.05rem; }
+.video-frame {
+  width: max(320px, min(100%, 1180px, calc((100svh - var(--topbar) - 235px) * 1.7778)));
+  max-width: 1180px;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--line-dark);
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.9);
 }
-.split-copy p { margin-top: 16px; color: var(--on-dark-soft); max-width: 40ch; font-size: 1.05rem; }
-.split-media { border: 1px solid var(--line-dark); background: #000; aspect-ratio: 16 / 9; box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.9); }
-.split-media iframe { display: block; width: 100%; height: 100%; border: 0; }
+.video-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
 
 .facts { margin-top: clamp(24px, 4vw, 44px); display: grid; }
+.facts-row { max-width: 1180px; grid-template-columns: repeat(3, 1fr); column-gap: clamp(16px, 3vw, 48px); }
 .facts > div { padding: 14px 0; border-top: 1px solid var(--line-dark); }
 .facts dt { font-size: 0.88rem; color: var(--on-dark-soft); }
 .facts dd { font-family: var(--display); font-size: 1.9rem; font-weight: 500; line-height: 1.15; font-variant-numeric: tabular-nums lining-nums; }
@@ -487,13 +411,6 @@ td.muted { color: var(--muted); }
 
 .bubble-box { position: relative; height: clamp(340px, 54vh, 540px); padding: 12px; }
 
-/* Join */
-.join { min-height: 72vh; display: flex; align-items: center; }
-.join-copy { max-width: 760px; }
-.join-copy h2 { font-size: clamp(2.6rem, 7vw, 6rem); }
-.join-copy p { margin-top: 20px; max-width: 46ch; color: var(--on-dark-soft); font-size: 1.15rem; }
-.join-copy .button { margin-top: 32px; padding: 16px 30px; font-size: 1.05rem; }
-
 /* Footer */
 .footer {
   display: flex;
@@ -512,42 +429,32 @@ td.muted { color: var(--muted); }
 
 @media (max-width: 1100px) {
   .chapter { width: min(420px, 44vw); }
-  #ch1 { width: min(520px, 52vw); }
 }
 
 @media (max-width: 900px) {
-  .split { grid-template-columns: 1fr; }
-  .split-copy p { max-width: 56ch; }
   .growth-stats { grid-template-columns: 1fr; }
   .growth-stat { border-left: 0; border-top: 1px solid var(--paper-line); padding: 12px clamp(14px, 2vw, 28px); }
   .growth-stat:first-child { border-top: 0; }
 }
 
 @media (max-width: 760px) {
-  :root { --story-length: 560vh; }
+  :root { --story-length: 280vh; }
+  .facts-row { grid-template-columns: 1fr; }
 
   .brand-name { display: none; }
 
-  .chapter,
-  #ch1 {
+  .chapter {
     left: 12px;
     right: 12px;
     bottom: 12px;
     width: auto;
     padding: 18px 18px 20px;
   }
-  .chapter h1 { font-size: 2rem; }
   .chapter h2 { font-size: 1.7rem; }
   .chapter p { margin-top: 10px; font-size: 0.95rem; }
-  .key-figures { margin-top: 16px; padding-top: 14px; }
-  .key-figures dd { font-size: 1.35rem; }
-  .scroll-cue { display: none; }
-  #ch3.chapter-list { top: auto; height: 40vh; height: 40svh; padding: 16px 16px 4px; }
+  #ch3.chapter-list { top: auto; bottom: 116px; height: 34vh; height: 34svh; padding: 16px 16px 4px; }
   .chapter-popup { left: 12px; right: 12px; width: auto; margin: 0; padding: 12px 14px; }
   .popup-copy strong { font-size: 1.05rem; }
-  .chapter-nav { right: 6px; top: 40%; }
-  .chapter-nav button { width: 18px; height: 18px; }
-  .chapter-nav button::after { inset: 4px; }
   .pin-ring { inset: -6px; }
   .maplibregl-ctrl-bottom-right { top: calc(var(--topbar) + 6px); bottom: auto; }
 

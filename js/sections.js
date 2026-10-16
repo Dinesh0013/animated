@@ -49,13 +49,7 @@ export function setNumber(el, target) {
 /* ---------- Story copy and key figures ---------- */
 
 export function renderStoryText(model) {
-  const { totalSchools, totalStudents, delhi, latestMonth, firstMonth } = model;
-  const schoolWord = (n) => (n === 1 ? "school" : "schools");
-
-  setText("c1Title", `One video. ${formatNumber(totalSchools)} ${schoolWord(totalSchools)}. ${formatNumber(totalStudents)} students.`);
-  setNumber($("kSchools"), totalSchools);
-  setNumber($("kStudents"), totalStudents);
-  setText("kSince", firstMonth ? monthShort.format(firstMonth.date) : "–");
+  const { delhi, latestMonth, firstMonth } = model;
 
   // Left-hand list of every school on the map, largest audience first.
   const list = $("schoolList");

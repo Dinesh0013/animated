@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <a class="skip-link" href="#video">Skip the map story</a>
+  <a class="skip-link" href="#reach">Skip the map</a>
 
   <header class="topbar">
     <div class="brand">
@@ -26,6 +26,27 @@
   <div id="notice" class="notice" role="alert" hidden></div>
 
   <main>
+    <!-- Watch the video -->
+    <section id="video" class="section section-dark section-video">
+      <div class="motif motif-left" aria-hidden="true"></div>
+      <div class="video-head">
+        <h2>Watch the Video</h2>
+        <p>The air-pollution awareness video, shown to students in Delhi schools.</p>
+      </div>
+      <div class="video-frame">
+        <iframe src="https://www.youtube.com/embed/JvEGXiQcYPI" title="Air pollution awareness video" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+      <dl class="facts facts-row">
+        <div><dt>Tracking since</dt><dd id="vSince">&ndash;</dd></div>
+        <div><dt>Months of data</dt><dd id="vMonths">&ndash;</dd></div>
+        <div>
+          <dt id="vAddedLabel">Added this month</dt>
+          <dd><span id="vAdded">0</span></dd>
+          <dd class="fact-note" id="vAddedNote"></dd>
+        </div>
+      </dl>
+    </section>
+
     <!-- Pinned, scroll-driven map story -->
     <section id="story" class="story" aria-label="Map of India that zooms into Delhi as you scroll" data-reveal="0">
       <div class="story-pin">
@@ -33,23 +54,13 @@
         <div class="story-vignette" aria-hidden="true"></div>
 
         <div class="chapters">
-          <article class="chapter chapter-left" id="ch1" data-show="0 0 0.07 0.13">
-            <h1 id="c1Title">One video. Schools. Students.</h1>
-            <p>An air-pollution awareness video, shown to students in Delhi schools. Scroll to follow it, school by school.</p>
-            <dl class="key-figures">
-              <div><dt>Schools</dt><dd id="kSchools">0</dd></div>
-              <div><dt>Students</dt><dd id="kStudents">0</dd></div>
-              <div><dt>Tracking since</dt><dd id="kSince">&ndash;</dd></div>
-            </dl>
-          </article>
-
-          <aside class="chapter chapter-list" id="ch3" data-show="0.39 0.45 0.58 0.64" aria-label="Participating schools in Delhi">
-            <h2>Schools in Delhi</h2>
+          <aside class="chapter chapter-list" id="ch3" aria-label="List of schools">
+            <h2>List of Schools</h2>
             <p class="list-note">Marker size shows how many students watched.</p>
             <ul class="school-list" id="schoolList"></ul>
           </aside>
 
-          <aside class="chapter chapter-popup" id="ch4" data-show="0.66 0.73 1 1">
+          <aside class="chapter chapter-popup" id="ch4">
             <div class="popup-copy">
               <strong>Add your school to the map</strong>
               <span>Takes less than a minute.</span>
@@ -58,37 +69,6 @@
           </aside>
         </div>
 
-        <nav class="chapter-nav" aria-label="Story chapters">
-          <button type="button" data-p="0" aria-label="India overview" aria-current="true"></button>
-          <button type="button" data-p="0.24" aria-label="Zooming into Delhi" aria-current="false"></button>
-          <button type="button" data-p="0.5" aria-label="Schools in Delhi" aria-current="false"></button>
-          <button type="button" data-p="0.85" aria-label="Back to the whole country" aria-current="false"></button>
-        </nav>
-
-        <div class="scroll-cue" aria-hidden="true"><span>Scroll</span><i></i></div>
-      </div>
-    </section>
-
-    <!-- Video -->
-    <section id="video" class="section section-dark">
-      <div class="motif motif-left" aria-hidden="true"></div>
-      <div class="split">
-        <div class="split-copy">
-          <h2>Watch the video</h2>
-          <p>The air-pollution awareness video shown to students in participating schools.</p>
-          <dl class="facts">
-            <div><dt>Tracking since</dt><dd id="vSince">&ndash;</dd></div>
-            <div><dt>Months of data</dt><dd id="vMonths">&ndash;</dd></div>
-            <div>
-              <dt id="vAddedLabel">Added this month</dt>
-              <dd><span id="vAdded">0</span></dd>
-              <dd class="fact-note" id="vAddedNote"></dd>
-            </div>
-          </dl>
-        </div>
-        <div class="split-media">
-          <iframe src="https://www.youtube.com/embed/JvEGXiQcYPI" title="Air pollution awareness video" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-        </div>
       </div>
     </section>
 
@@ -160,15 +140,6 @@
       </div>
     </section>
 
-    <!-- Join -->
-    <section id="join" class="section section-dark join">
-      <div class="motif motif-right" aria-hidden="true"></div>
-      <div class="join-copy">
-        <h2>Add your school to the map</h2>
-        <p>Fill in the form (takes less than a minute) to mark your organisation and be part of a growing impact.</p>
-        <a class="button" href="https://forms.gle/Vt81efP2fELoPS5H7" target="_blank" rel="noopener">Open the form</a>
-      </div>
-    </section>
   </main>
 
   <footer class="footer">

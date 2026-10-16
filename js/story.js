@@ -1,6 +1,6 @@
 // Scroll-driven map story: a pinned full-screen MapLibre map whose camera is a pure
-// function of scroll progress (India -> Delhi -> India), plus the school markers and
-// the chapter panels that fade in and out along the way.
+// function of scroll progress. As the section arrives the map zooms straight into Delhi
+// (no tilt, rotation or drift) and then stays still while the school list scrolls.
 
 import { formatNumber, dayFormat } from "./data.js";
 
@@ -10,11 +10,9 @@ const STATES_URL = new URL("../data/india-states.geojson", import.meta.url).href
 const DELHI_URL = new URL("../data/delhi.geojson", import.meta.url).href;
 const DISTRICTS_URL = new URL("../data/india-districts.geojson", import.meta.url).href;
 
-// Scroll progress (0..1) at which each camera phase starts and ends.
-// Progress range over which the school list scrolls from its first to its last name.
-const LIST_SCROLL = { from: 0.45, to: 0.58 };
-
-const PHASE = { holdIndia: 0.07, arriveDelhi: 0.36, leaveDelhi: 0.62, backInIndia: 0.9 };
+// Progress (0..1) runs from the moment the section's top reaches the bottom of the screen
+// until its bottom reaches the bottom of the screen. The zoom finishes just as the map pins.
+const ZOOM_START = 0.02;
 
 const LATIN_NAME = ["coalesce", ["get", "name_en"], ["get", "name:latin"], ["get", "name"]];
 
@@ -32,7 +30,6 @@ const clamp01 = (x) => Math.min(1, Math.max(0, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (x) => x * x * (3 - 2 * x);
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
 
 /* ---------- Map style ---------- */
 
@@ -183,7 +180,6 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     attributionControl: false,
     fadeDuration: 0,
     renderWorldCopies: false,
-    maxPitch: 60,
     maxZoom: 13
   });
   map.addControl(new maplibregl.AttributionControl({
@@ -196,16 +192,14 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     map.once("error", (e) => { if (!map.loaded()) reject(e.error || e); });
   });
 
-  const chapters = Array.from(storyEl.querySelectorAll(".chapter")).map((el) => ({
-    el,
-    range: el.dataset.show.split(/\s+/).map(Number),
-    shift: el.dataset.shift || "up"
-  }));
+  const chapters = {
+    list: storyEl.querySelector("#ch3"),
+    popup: storyEl.querySelector("#ch4")
+  };
   const listEl = storyEl.querySelector("#schoolList");
-  const navDots = Array.from(storyEl.querySelectorAll(".chapter-nav button"));
-  const cue = storyEl.querySelector(".scroll-cue");
 
   let cameras = null;
+  let timing = { zoomEnd: 0.3 };
   let schools = [];
   let markers = [];
   let progress = 0;
@@ -215,12 +209,28 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
   let pinned = null;
   let tween = null;
 
+  /* Timing: the zoom ends exactly when the map pins to the screen. */
+
+  function measure() {
+    const pinAt = Math.min(0.6, window.innerHeight / storyEl.offsetHeight);
+    timing = {
+      zoomEnd: pinAt,
+      listIn: [pinAt - 0.03, pinAt + 0.03],
+      listOut: [0.95, 1],
+      popupIn: [pinAt + 0.16, pinAt + 0.22],
+      popupOut: [0.96, 1],
+      listScroll: [pinAt + 0.06, 0.92]
+    };
+  }
+
   /* Cameras */
 
   function toCamera(options, bounds) {
     const cam = map.cameraForBounds(bounds, options);
     return { center: [cam.center.lng, cam.center.lat], zoom: cam.zoom };
   }
+
+  const toMercator = ([lng, lat]) => maplibregl.MercatorCoordinate.fromLngLat({ lng, lat });
 
   function computeCameras() {
     const { clientWidth: w, clientHeight: h } = mapEl;
@@ -240,58 +250,51 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
       ? [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
       : [[76.95, 28.45], [77.35, 28.85]];
 
-    const arrive = toCamera({
+    const delhi = toCamera({
       padding: mobile
         ? { top: 90, bottom: Math.round(h * 0.5), left: 28, right: 28 }
         : { top: 100, bottom: 90, left: Math.min(Math.round(w * 0.4), 580), right: 110 },
       maxZoom: 11.4
     }, bounds);
 
-    const still = reduceMotion.matches;
-    const d1 = { ...arrive, pitch: still ? 0 : 26, bearing: still ? 0 : -12 };
-    const d2 = {
-      center: [arrive.center[0] + 0.05, arrive.center[1] - 0.025],
-      zoom: arrive.zoom + (still ? 0 : 0.35),
-      pitch: still ? 0 : 32,
-      bearing: still ? 0 : -4
+    // A pure zoom about one fixed point F: with the centre moving as
+    // c(z) = F + (c0 - F) * 2^(z0 - z), F stays put on screen, so the map zooms in
+    // without sliding sideways. F is chosen so the zoom ends exactly on the Delhi camera.
+    const a = toMercator(india.center);
+    const d = toMercator(delhi.center);
+    const k = Math.pow(2, india.zoom - delhi.zoom);
+    const focus = {
+      x: (d.x - a.x * k) / (1 - k),
+      y: (d.y - a.y * k) / (1 - k)
     };
-    cameras = { india: { ...india, pitch: 0, bearing: 0 }, d1, d2 };
-  }
-
-  function mix(a, b, panT, zoomT) {
-    return {
-      center: [lerp(a.center[0], b.center[0], panT), lerp(a.center[1], b.center[1], panT)],
-      zoom: lerp(a.zoom, b.zoom, zoomT),
-      pitch: lerp(a.pitch, b.pitch, zoomT),
-      bearing: lerp(a.bearing, b.bearing, zoomT)
-    };
+    cameras = { india, delhi, a, focus };
   }
 
   // The camera is a pure function of progress, so scrolling either way retraces the same path.
   function cameraAt(p) {
-    const { india, d1, d2 } = cameras;
-    const still = reduceMotion.matches;
+    const { india, delhi, a, focus } = cameras;
+    const t = clamp01((p - ZOOM_START) / (timing.zoomEnd - ZOOM_START));
 
-    if (p <= PHASE.holdIndia || p >= PHASE.backInIndia) return { ...india, zoomT: 0 };
+    if (reduceMotion.matches) {
+      return t < 0.5 ? { ...india, zoomT: 0 } : { ...delhi, zoomT: 1 };
+    }
+    if (t <= 0) return { ...india, zoomT: 0 };
+    if (t >= 1) return { ...delhi, zoomT: 1 };
 
-    if (p < PHASE.arriveDelhi) {
-      const t = (p - PHASE.holdIndia) / (PHASE.arriveDelhi - PHASE.holdIndia);
-      if (still) return { ...(t < 0.5 ? india : d1), zoomT: t < 0.5 ? 0 : 1 };
-      return { ...mix(india, d1, easeInOutSine(t), easeInOutCubic(t)), zoomT: easeInOutCubic(t) };
-    }
-    if (p <= PHASE.leaveDelhi) {
-      const t = (p - PHASE.arriveDelhi) / (PHASE.leaveDelhi - PHASE.arriveDelhi);
-      const e = still ? 0 : easeInOutSine(t);
-      return { ...mix(d1, d2, e, e), zoomT: 1 };
-    }
-    const t = (p - PHASE.leaveDelhi) / (PHASE.backInIndia - PHASE.leaveDelhi);
-    if (still) return { ...(t < 0.5 ? d2 : india), zoomT: t < 0.5 ? 1 : 0 };
-    return { ...mix(d2, india, easeInOutSine(t), easeInOutCubic(t)), zoomT: 1 - easeInOutCubic(t) };
+    const e = easeInOutCubic(t);
+    const zoom = lerp(india.zoom, delhi.zoom, e);
+    const scale = Math.pow(2, india.zoom - zoom);
+    const center = new maplibregl.MercatorCoordinate(
+      focus.x + (a.x - focus.x) * scale,
+      focus.y + (a.y - focus.y) * scale,
+      0
+    ).toLngLat();
+    return { center: [center.lng, center.lat], zoom, zoomT: e };
   }
 
-  /* Chapters and readout */
+  /* Panels */
 
-  function visibility(p, [a, b, c, d]) {
+  function visibility(p, [a, b], [c, d]) {
     if (p < a) return 0;
     if (p < b) return smooth((p - a) / (b - a));
     if (p <= c) return 1;
@@ -299,21 +302,26 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     return 0;
   }
 
-  function updateChapters(p) {
-    let active = 0;
-    let best = 0;
-    chapters.forEach(({ el, range, shift }, index) => {
-      const v = visibility(p, range);
-      if (v > best) { best = v; active = index; }
-      const dy = (1 - v) * (shift === "down" ? -24 : 24);
-      el.style.opacity = v.toFixed(3);
-      el.style.transform = `translate3d(0, ${dy.toFixed(1)}px, 0)`;
-      el.style.visibility = v < 0.02 ? "hidden" : "visible";
-      el.style.pointerEvents = v > 0.6 ? "auto" : "none";
-      el.setAttribute("aria-hidden", String(v < 0.5));
-    });
-    navDots.forEach((dot, index) => dot.setAttribute("aria-current", String(index === active)));
-    if (cue) cue.style.opacity = String(clamp01(1 - p / 0.05));
+  function showPanel(el, v) {
+    if (!el) return;
+    el.style.opacity = v.toFixed(3);
+    el.style.transform = `translate3d(0, ${((1 - v) * 24).toFixed(1)}px, 0)`;
+    el.style.visibility = v < 0.02 ? "hidden" : "visible";
+    el.style.pointerEvents = v > 0.6 ? "auto" : "none";
+    el.setAttribute("aria-hidden", String(v < 0.5));
+  }
+
+  function updatePanels(p) {
+    showPanel(chapters.list, visibility(p, timing.listIn, timing.listOut));
+    showPanel(chapters.popup, visibility(p, timing.popupIn, timing.popupOut));
+  }
+
+  // The school list scrolls itself with the story, so it never traps the mouse wheel.
+  function scrollList(p) {
+    if (!listEl) return;
+    const [from, to] = timing.listScroll;
+    const t = clamp01((p - from) / (to - from));
+    listEl.scrollTop = t * (listEl.scrollHeight - listEl.clientHeight);
   }
 
   function setRevealed(on) {
@@ -327,22 +335,15 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     if (!cameras) return;
     progress = p;
     const cam = cameraAt(p);
-    const key = [cam.center[0].toFixed(4), cam.center[1].toFixed(4), cam.zoom.toFixed(3), cam.pitch.toFixed(2), cam.bearing.toFixed(2)].join();
+    const key = [cam.center[0].toFixed(4), cam.center[1].toFixed(4), cam.zoom.toFixed(3)].join();
     if (force || key !== lastKey) {
       lastKey = key;
-      map.jumpTo({ center: cam.center, zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing });
+      map.jumpTo({ center: cam.center, zoom: cam.zoom, pitch: 0, bearing: 0 });
       storyEl.style.setProperty("--z", cam.zoomT.toFixed(3));
     }
     setRevealed(revealed ? cam.zoomT > 0.55 : cam.zoomT > 0.72);
-    updateChapters(p);
+    updatePanels(p);
     scrollList(p);
-  }
-
-  // The school list scrolls itself with the story, so it never traps the mouse wheel.
-  function scrollList(p) {
-    if (!listEl) return;
-    const t = clamp01((p - LIST_SCROLL.from) / (LIST_SCROLL.to - LIST_SCROLL.from));
-    listEl.scrollTop = t * (listEl.scrollHeight - listEl.clientHeight);
   }
 
   /* Markers */
@@ -434,7 +435,7 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
     apply(progress, true);
   }
 
-  // Lets the "largest audiences" list light up the matching marker.
+  // Lets the school list light up the matching marker.
   function highlight(school, on) {
     const item = markers.find((m) => m.school === school);
     if (!item) return;
@@ -451,13 +452,6 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
 
   /* Scroll link and lifecycle */
 
-  function scrollToProgress(p) {
-    const range = storyEl.offsetHeight - window.innerHeight;
-    const top = storyEl.getBoundingClientRect().top + window.scrollY + p * range;
-    window.scrollTo({ top, behavior: reduceMotion.matches ? "auto" : "smooth" });
-  }
-  navDots.forEach((dot) => dot.addEventListener("click", () => scrollToProgress(Number(dot.dataset.p))));
-
   const proxy = { p: 0 };
   function bindScroll() {
     if (tween) { tween.scrollTrigger.kill(); tween.kill(); }
@@ -466,9 +460,10 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
       ease: "none",
       scrollTrigger: {
         trigger: storyEl,
-        start: "top top",
+        start: "top bottom",
         end: "bottom bottom",
-        scrub: reduceMotion.matches ? true : 0.7
+        scrub: reduceMotion.matches ? true : 0.7,
+        onRefresh: () => { measure(); apply(progress, true); }
       },
       onUpdate: () => apply(proxy.p)
     });
@@ -476,6 +471,7 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
 
   const resizeObserver = new ResizeObserver(() => {
     map.resize();
+    measure();
     computeCameras();
     apply(progress, true);
     ScrollTrigger.refresh();
@@ -485,6 +481,7 @@ export async function createStory({ storyEl, mapEl, onStatus }) {
   const motionListener = () => { computeCameras(); bindScroll(); apply(progress, true); };
   reduceMotion.addEventListener("change", motionListener);
 
+  measure();
   computeCameras();
   bindScroll();
   apply(0, true);
